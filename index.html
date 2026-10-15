@@ -1,0 +1,1121 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panzas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#2a1c16; --bg2:#3a281f; --panel:#f6ead2; --panel2:#efdcb9;
+    --ink:#3b2418; --line:#2b1a12; --accent:#c8553a; --gold:#ffd58a; --muted:#8a6a55;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg);
+    background-image:radial-gradient(circle at 50% 0%, #4a3226 0%, var(--bg) 70%);
+    font-family:'Pixelify Sans', ui-monospace, monospace;
+    color:var(--ink); min-height:100vh; display:flex; justify-content:center;
+    padding:16px;
+  }
+  .wrap{width:100%; max-width:760px}
+  header{display:flex; align-items:center; gap:12px; color:var(--panel); margin:4px 8px 14px}
+  h1{margin:0; font-size:34px; font-weight:700; color:var(--gold); text-shadow:3px 3px 0 #000; letter-spacing:1px}
+  .sub{opacity:.75; font-size:16px}
+  .icon-btn{margin-left:auto; font:inherit; font-size:18px; background:var(--panel); color:var(--ink);
+    border:3px solid var(--line); box-shadow:0 3px 0 var(--line); padding:2px 10px; cursor:pointer}
+  .icon-btn:active{transform:translateY(2px); box-shadow:0 1px 0 var(--line)}
+
+  .screen{position:relative; margin:8px; line-height:0; background:#000;
+    border:4px solid var(--line);
+    box-shadow:0 0 0 4px var(--panel), 0 0 0 8px var(--line), 0 10px 0 8px rgba(0,0,0,.35)}
+  canvas{width:100%; height:auto; display:block; image-rendering:pixelated; image-rendering:crisp-edges}
+  #bubbles{position:absolute; inset:0; pointer-events:none; line-height:1.15}
+  .bubble{position:absolute; transform:translate(-50%,-100%); background:#fff; color:#222;
+    border:2px solid #222; padding:2px 7px; font-size:clamp(11px,2.3vw,17px); white-space:nowrap;
+    box-shadow:2px 2px 0 rgba(0,0,0,.35); animation:pop .18s steps(3) both}
+  .bubble::after{content:""; position:absolute; left:50%; bottom:-7px; margin-left:-4px; width:8px; height:6px;
+    background:#fff; border:2px solid #222; border-top:none; clip-path:polygon(0 0,100% 0,50% 100%)}
+  @keyframes pop{from{transform:translate(-50%,-80%) scale(.6)} to{transform:translate(-50%,-100%) scale(1)}}
+
+  .overlay{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px; background:rgba(30,18,12,.55); line-height:1.2; text-align:center; padding:16px}
+  .overlay h2{margin:0; color:var(--gold); font-size:clamp(34px,8vw,64px); text-shadow:4px 4px 0 #000}
+  .overlay p{margin:0; color:var(--panel); font-size:clamp(14px,2.6vw,19px); max-width:30ch}
+  .big-btn{font:inherit; font-size:22px; font-weight:600; background:var(--gold); color:var(--ink);
+    border:4px solid var(--line); box-shadow:0 5px 0 var(--line); padding:8px 22px; cursor:pointer}
+  .big-btn:active{transform:translateY(3px); box-shadow:0 2px 0 var(--line)}
+
+  .panel{background:var(--panel); border:4px solid var(--line); margin:22px 8px 0; padding:14px;
+    box-shadow:0 6px 0 rgba(0,0,0,.35)}
+  .meters{display:grid; grid-template-columns:repeat(3,1fr); gap:10px 16px; margin-bottom:12px}
+  .meter label{display:block; font-size:15px; margin-bottom:3px; color:var(--muted)}
+  .bar{display:grid; grid-template-columns:repeat(10,1fr); gap:2px; border:2px solid var(--line); padding:2px; background:#fff8ea}
+  .bar i{height:10px; background:#e6d6b8}
+  .bar i.on{background:var(--c)}
+  .textbox{background:#fffaf0; border:3px solid var(--line); padding:10px 12px; min-height:4.2em;
+    font-size:clamp(16px,2.6vw,19px); line-height:1.35}
+  .actions{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px; margin-top:12px}
+  .act{font:inherit; font-size:17px; text-align:left; display:flex; align-items:center; gap:10px;
+    background:#fff7e6; color:var(--ink); border:3px solid var(--line); box-shadow:0 4px 0 var(--line);
+    padding:9px 10px; cursor:pointer}
+  .act:hover:not(:disabled){background:#ffeccc}
+  .act:active:not(:disabled){transform:translateY(3px); box-shadow:0 1px 0 var(--line)}
+  .act:disabled{opacity:.45; cursor:default}
+  .act .num{display:inline-grid; place-items:center; min-width:26px; height:26px; background:var(--accent); color:#fff;
+    border:2px solid var(--line); font-weight:700; font-size:15px}
+  .act.love .num{background:#e0507a}
+  .foot{display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:14px; color:var(--muted); gap:8px; flex-wrap:wrap}
+  .link-btn{font:inherit; font-size:15px; background:none; border:2px solid var(--line); color:var(--ink); padding:3px 10px; cursor:pointer}
+  .hidden{display:none !important}
+  @media (max-width:520px){
+    body{padding:10px}
+    .meters{grid-template-columns:1fr; gap:6px}
+    h1{font-size:28px}
+    .sub{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Panzas</h1><span class="sub">un día en el living</span>
+    <button id="snd" class="icon-btn" title="Sonido">🔊</button>
+  </header>
+
+  <div class="screen">
+    <canvas id="c" width="200" height="150"></canvas>
+    <div id="bubbles"></div>
+    <div id="start" class="overlay">
+      <h2>Panzas</h2>
+      <p>Sos Panzas, un gato negro con mucha vida interior. Tu humano, Gabo, todavía no llegó.</p>
+      <button id="go" class="big-btn">▶ Empezar</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="meters">
+      <div class="meter"><label>💤 Descanso</label><div class="bar" id="m-descanso" style="--c:#6f86c9"></div></div>
+      <div class="meter"><label>🍗 Pancita</label><div class="bar" id="m-pancita" style="--c:#e8a33d"></div></div>
+      <div class="meter"><label>💕 Amor</label><div class="bar" id="m-amor" style="--c:#e0507a"></div></div>
+    </div>
+    <div id="text" class="textbox"></div>
+    <div id="actions" class="actions"></div>
+    <div class="foot">
+      <span>Tip: también podés usar los números del teclado.</span>
+      <button id="reset" class="link-btn hidden">↺ Nuevo día</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+const W = 200, H = 150, FLOOR_Y = 58;
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const $text = document.getElementById('text');
+const $actions = document.getElementById('actions');
+const $bub = document.getElementById('bubbles');
+const $reset = document.getElementById('reset');
+
+/* ---------------- utilidades de dibujo ---------------- */
+function r(x, y, w, h, c, g = ctx) { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); }
+function px(x, y, c, g = ctx) { r(x, y, 1, 1, c, g); }
+function hex(h) { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); }
+function lerpC(a, b, t) { const A = hex(a), B = hex(b); return 'rgb(' + A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',') + ')'; }
+function rnd(a, b) { return a + Math.random() * (b - a); }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function seeded(seed) { let s = seed; return () => (s = (s * 9301 + 49297) % 233280) / 233280; }
+
+/* ---------------- sprites ---------------- */
+const PAL = {
+  k: '#15151c', d: '#2a2a38', g: '#6c6c84', e: '#d6e35a', p: '#f09aae',
+  r: '#e8507a', w: '#ffd6e2', b: '#5468b0', y: '#ffe066', W: '#ffffff', n: '#3a3a3a'
+};
+function makeSprite(rows) {
+  const w = Math.max(...rows.map(s => s.length)), h = rows.length;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  rows.forEach((row, y) => {
+    for (let i = 0; i < w; i++) {
+      const ch = row[i] || '.';
+      if (ch === '.') continue;
+      let col = PAL[ch];
+      // brillo suave en el borde superior del pelaje
+      if (ch === 'k') { const above = y > 0 ? (rows[y - 1][i] || '.') : '.'; if (above === '.') col = '#36364c'; }
+      g.fillStyle = col; g.fillRect(i, y, 1, 1);
+    }
+  });
+  const f = document.createElement('canvas'); f.width = w; f.height = h;
+  const fg = f.getContext('2d'); fg.translate(w, 0); fg.scale(-1, 1); fg.drawImage(c, 0, 0);
+  return { w, h, n: c, f };
+}
+function drawSpr(s, x, y, flip = false) { ctx.drawImage(flip ? s.f : s.n, Math.round(x - s.w / 2), Math.round(y - s.h)); }
+
+const SIT = [
+  "..........k...k.",
+  "..........kp.pk.",
+  ".........kkkkkkk",
+  ".........kkkkkkk",
+  ".........kekkkek",
+  ".........kkkpkkk",
+  "..........kkkkk.",
+  ".......kkkkkkk..",
+  "......kkkkkkkk..",
+  ".....kkkkkkkkk..",
+  ".....kkkkkkkkk..",
+  "....kkkkkkkkkk..",
+  "....kkkkkdkkdk..",
+  "kk..kkkkkdkkdk..",
+  ".kkkkkkkkdkkdk..",
+  "..kkkkkkkkkkkk..",
+];
+const BLINK = SIT.map((s, i) => i === 4 ? ".........kgkkkgk" : s);
+const MEOW = SIT.map((s, i) => i === 4 ? ".........kgkkkgk" : i === 5 ? ".........kkkpkkk" : i === 6 ? "..........kkpkk." : s);
+const SPR = {
+  sit: makeSprite(SIT),
+  blink: makeSprite(BLINK),
+  meow: makeSprite(MEOW),
+  walk: [
+    makeSprite([
+      "..............k...k.",
+      "..............kkkkk.",
+      "k............kkkkkkk",
+      "k............kekkkek",
+      ".k...........kkkpkkk",
+      ".k.kkkkkkkkkkkkkkkk.",
+      "..kkkkkkkkkkkkkkkk..",
+      "..kkkkkkkkkkkkkkkk..",
+      "...kkkkkkkkkkkkkkk..",
+      "...kk.kk.....kk.kk..",
+      "..kk...kk...kk...kk.",
+      "..k.....k...k.....k.",
+    ]),
+    makeSprite([
+      "..............k...k.",
+      "..............kkkkk.",
+      "k............kkkkkkk",
+      "k............kekkkek",
+      ".k...........kkkpkkk",
+      ".k.kkkkkkkkkkkkkkkk.",
+      "..kkkkkkkkkkkkkkkk..",
+      "..kkkkkkkkkkkkkkkk..",
+      "...kkkkkkkkkkkkkkk..",
+      "....kkk.......kkk...",
+      "....kkk.......kkk...",
+      "....k.k.......k.k...",
+    ]),
+  ],
+  curl: makeSprite([
+    "..k..k............",
+    "..kkkk...kkkkk....",
+    ".kkkkkk.kkkkkkkk..",
+    ".kgkkgkkkkkkkkkkk.",
+    ".kkkpkkkkkkkkkkkkk",
+    "..kkkkkkkkkkkkkkkk",
+    "..kkkkkkkkkkkkkkkk",
+    ".kkkkkkkkkkkkkkkk.",
+    "kkdddddddddkkkkk..",
+    ".kkkkkkkkkkkkkk...",
+  ]),
+  stretch: makeSprite([
+    "..k..k...................",
+    ".kkkkkk..................",
+    ".kgkkgk...kkkkkkkkkkk....",
+    ".kkkpkkkkkkkkkkkkkkkkkk..",
+    "..kkkkkkkkkkkkkkkkkkkkkkk",
+    "kkkkkkkkkkkkkkkkkkkkkkk.k",
+    "kkk...kkkk.......kkkk...k",
+  ]),
+  belly: makeSprite([
+    "......k..k...k..k....",
+    "......k..k...k..k....",
+    "..kkkkkkkkkkkkkkkk...",
+    ".kkkkkkddddddddkkkk..",
+    "kgkkgkkddddddddkkkkk.",
+    "kkpkkkkkddddddkkkkkkk",
+    ".kkkkkkkkkkkkkkkkk.kk",
+    ".k..k..............k.",
+  ]),
+  back: [
+    makeSprite([
+      "..k.......k.....",
+      "..kk.....kk.....",
+      "..kkkkkkkkk.....",
+      ".kkkkkkkkkkk....",
+      ".kkkkkkkkkkk....",
+      "..kkkkkkkkk.....",
+      "...kkkkkkk......",
+      "..kkkkkkkkk.....",
+      ".kkkkkkkkkkk....",
+      ".kkkkkkkkkkk....",
+      "kkkkkkkkkkkkk...",
+      "kkkkkkkkkkkkk...",
+      "kkkkkkkkkkkkk...",
+      "kkkkkkkkkkkkk...",
+      ".kkkkkkkkkkkkkkk",
+      "..kkkk.kkkk...kk",
+    ]),
+    makeSprite([
+      "..k.......k.....",
+      "..kk.....kk.....",
+      "..kkkkkkkkk.....",
+      ".kkkkkkkkkkk....",
+      ".kkkkkkkkkkk....",
+      "..kkkkkkkkk.....",
+      "...kkkkkkk......",
+      "..kkkkkkkkk.....",
+      ".kkkkkkkkkkk.kk.",
+      ".kkkkkkkkkkk..k.",
+      "kkkkkkkkkkkkk.k.",
+      "kkkkkkkkkkkkk.k.",
+      "kkkkkkkkkkkkkk..",
+      "kkkkkkkkkkkkk...",
+      ".kkkkkkkkkkk....",
+      "..kkkk.kkkk.....",
+    ]),
+  ],
+  scratch: [
+    makeSprite([
+      ".......k...k..",
+      ".......kp.pk..",
+      ".......kkkkk..",
+      "......kkkkkkk.",
+      "......kgkkkgk.",
+      "......kkkpkkkk",
+      ".......kkkkk.k",
+      "......kkkkkkkk",
+      "......kkkkkk.k",
+      ".....kkkkkk...",
+      ".....kkkkkk...",
+      ".....kkkkkk...",
+      "....kkkkkkk...",
+      "....kkkkkkk...",
+      "...kkkkkkkk...",
+      "k..kkkkkkkk...",
+      "kk.kkkkkkk....",
+      ".kkkkk.kkk....",
+      "..kkkk.kkkk...",
+      "...kkk..kkk...",
+    ]),
+    makeSprite([
+      ".......k...k..",
+      ".......kp.pk..",
+      ".......kkkkk..",
+      "......kkkkkkk.",
+      "......kgkkkgk.",
+      "......kkkpkk.k",
+      ".......kkkkkkk",
+      "......kkkkkk.k",
+      "......kkkkkkkk",
+      ".....kkkkkk...",
+      ".....kkkkkk...",
+      ".....kkkkkk...",
+      "....kkkkkkk...",
+      "....kkkkkkk...",
+      "...kkkkkkkk...",
+      "k..kkkkkkkk...",
+      "kk.kkkkkkk....",
+      ".kkkkk.kkk....",
+      "..kkkk.kkkk...",
+      "...kkk..kkk...",
+    ]),
+  ],
+  eat: [
+    makeSprite([
+      "k.................",
+      "k..kkkkkkkkkk.....",
+      ".kkkkkkkkkkkkkk.k.",
+      "..kkkkkkkkkkkkkkkk",
+      "..kkkkkkkkkkkkkkkk",
+      "..kkkkkkkkkkkkkgkg",
+      "..kk.kk.....kkkkkk",
+      "..kk.kk.....kk.kk.",
+      "..kk.kk.....kk.kk.",
+    ]),
+    makeSprite([
+      "k.................",
+      "k..kkkkkkkkkk.....",
+      ".kkkkkkkkkkkkkk...",
+      "..kkkkkkkkkkkkkk.k",
+      "..kkkkkkkkkkkkkkkk",
+      "..kkkkkkkkkkkkkkkk",
+      "..kk.kk.....kkkkgk",
+      "..kk.kk.....kkkkkk",
+      "..kk.kk.....kk.kk.",
+    ]),
+  ],
+  heart: makeSprite([".rr.rr.", "rwrrrrr", "rrrrrrr", ".rrrrr.", "..rrr..", "...r..."]),
+  z: makeSprite(["bbbb", "..b.", ".b..", "bbbb"]),
+  spark: makeSprite([".y.", "yWy", ".y."]),
+};
+const SLEEPING = ['curl', 'stretch', 'belly'];
+
+/* ---------------- fondo estático ---------------- */
+const bg = document.createElement('canvas'); bg.width = W; bg.height = H;
+(function buildBackground() {
+  const g = bg.getContext('2d');
+  // pared
+  r(0, 0, W, FLOOR_Y, '#ecdfc4', g);
+  for (let x = 0; x < W; x += 7) r(x, 0, 1, FLOOR_Y, 'rgba(180,150,110,0.07)', g);
+  r(0, 0, W, 2, '#d6c5a3', g);
+  // biblioteca con la tele, frente al sillón
+  const WD = '#6b3c22', IN = '#43240f';
+  r(3, 3, 58, 55, WD, g); r(5, 5, 54, 51, IN, g);
+  r(5, 16, 54, 2, WD, g); r(5, 39, 54, 2, WD, g); r(5, 48, 54, 2, WD, g);
+  r(14, 18, 2, 21, WD, g); r(48, 18, 2, 21, WD, g);
+  // adornos y botellas de whisky arriba de la tele
+  const bottle = (x, body, tall) => {
+    const top = 16 - tall;
+    r(x + 1, top, 2, 1, '#1e1e1e', g); r(x + 1, top + 1, 2, 2, body === '#3d6b45' ? '#2b4d31' : '#5a3814', g);
+    r(x, top + 3, 4, tall - 3, body, g); px(x, top + 4, 'rgba(255,230,170,0.7)', g);
+    r(x, top + 5, 4, 2, '#efe1c0', g);
+  };
+  bottle(18, '#b8752a', 10); bottle(23, '#8a4a1a', 9); bottle(28, '#3d6b45', 10); bottle(42, '#c98a30', 8);
+  r(7, 12, 5, 4, '#b5593a', g); r(6, 8, 3, 4, '#5f9a4e', g); r(9, 7, 2, 5, '#7fbd66', g); r(11, 9, 2, 3, '#5f9a4e', g); // plantita
+  r(34, 12, 4, 4, '#15151c', g); px(34, 11, '#15151c', g); px(37, 11, '#15151c', g); px(35, 13, '#d6e35a', g); // gatito adorno
+  r(51, 9, 5, 5, '#3f7fb5', g); r(52, 10, 2, 2, '#6fb36a', g); r(53, 14, 1, 1, '#c9a14a', g); r(51, 15, 5, 1, '#c9a14a', g); // globito
+  // tele
+  r(17, 19, 30, 19, '#121215', g); r(18, 20, 28, 16, '#1d2833', g);
+  for (let i = 0; i < 7; i++) px(20 + i, 22 + i, 'rgba(255,255,255,0.12)', g), px(21 + i, 22 + i, 'rgba(255,255,255,0.08)', g);
+  px(45, 37, '#e04040', g);
+  // compartimentos laterales
+  r(6, 27, 2, 12, '#a8c8e0', g); r(8, 25, 2, 14, '#7a2e2a', g); r(10, 28, 3, 11, '#e8dcc0', g);
+  r(51, 33, 6, 6, '#8a6a45', g); r(51, 33, 6, 1, '#a8865c', g); r(52, 26, 4, 6, '#2b2b2b', g); r(53, 27, 2, 4, '#555', g);
+  // Nintendo Switch abajo de la tele
+  r(26, 44, 12, 4, '#2a2a2e', g); r(26, 44, 12, 1, '#3a3a40', g);
+  r(27, 41, 2, 4, '#2db4e8', g); r(29, 41, 6, 3, '#111114', g); r(35, 41, 2, 4, '#ff4b4b', g);
+  r(30, 42, 3, 1, '#2a3a4a', g);
+  r(42, 43, 3, 5, '#d42a2a', g); r(45, 43, 3, 5, '#d42a2a', g); r(42, 44, 3, 1, '#fff', g); // juegos
+  r(12, 45, 8, 3, '#3a3a40', g); // joystick extra
+  // muchos libros en el estante de abajo
+  const lr = seeded(11), lcols = ['#e8dcc0', '#7a2e2a', '#c9b27a', '#3f5f8a', '#a8c8e0', '#2f4f3a', '#b85a3a', '#d9d0b8', '#5a3a6a', '#efe6cf'];
+  for (let x = 6; x < 58;) {
+    const w = 1 + Math.floor(lr() * 3), h = 4 + Math.floor(lr() * 3);
+    if (x + w > 58) break;
+    r(x, 56 - h, w, h, lcols[Math.floor(lr() * lcols.length)], g);
+    x += w;
+  }
+  // zócalo
+  r(0, FLOOR_Y - 3, 3, 3, '#9a6a52', g); r(61, FLOOR_Y - 3, W - 61, 3, '#9a6a52', g); r(3, 56, 58, 2, '#6b3c22', g);
+
+  // piso de baldosas terracota
+  const fh = H - FLOOR_Y;
+  const img = g.createImageData(W, fh);
+  const rand = seeded(7);
+  for (let y = 0; y < fh; y++) {
+    const depth = 0.82 + 0.18 * (y / fh);
+    for (let x = 0; x < W; x++) {
+      const tx = x % 16, ty = y % 16;
+      let c = [181, 84, 47];
+      if (tx === 0 || ty === 0) c = [128, 56, 30];
+      else {
+        const dc = Math.min(Math.hypot(tx, ty), Math.hypot(16 - tx, ty), Math.hypot(tx, 16 - ty), Math.hypot(16 - tx, 16 - ty));
+        const dm = Math.hypot(tx - 8, ty - 8);
+        if (Math.abs(dc - 6.5) < 0.75) c = [150, 62, 33];
+        else if (Math.abs(dm - 3) < 0.7) c = [198, 104, 62];
+        const n = (rand() - 0.5) * 10;
+        c = c.map(v => v + n);
+      }
+      const i = (y * W + x) * 4;
+      img.data[i] = c[0] * depth; img.data[i + 1] = c[1] * depth; img.data[i + 2] = c[2] * depth; img.data[i + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, FLOOR_Y);
+
+  // estante de metal negro con equipos
+  const SH = '#7a5233';
+  r(134, 8, 2, 54, '#1c1c1f', g); r(158, 8, 2, 54, '#1c1c1f', g);
+  [20, 34, 48].forEach(y => r(134, y, 26, 2, SH, g));
+  r(138, 12, 9, 8, '#232327', g); r(141, 14, 3, 3, '#444', g);       // parlante chico
+  r(149, 15, 7, 5, '#2b2b30', g); r(150, 16, 5, 2, '#7ab3d9', g);    // tablet
+  r(137, 31, 19, 3, '#9aa0a8', g); r(137, 31, 19, 1, '#b8bec6', g);  // notebook
+  r(146, 38, 10, 10, '#1d1d21', g); r(149, 41, 4, 4, '#3d3d44', g);  // parlante
+  r(137, 42, 8, 6, '#8a6a45', g); r(137, 42, 8, 1, '#a8865c', g);    // canasto
+  r(138, 52, 18, 6, '#26262a', g); r(140, 54, 3, 2, '#555', g);      // subwoofer
+  [[136, 59], [139, 60], [143, 59], [147, 61], [151, 60], [133, 62]].forEach(([x, y]) => r(x, y, 3, 1, '#1a1a1a', g));
+
+  // biblioteca de madera
+  r(162, 2, 37, 60, '#6b3c22', g); r(164, 4, 33, 56, '#43240f', g);
+  const shelves = [4, 18, 32, 46];
+  shelves.slice(1).forEach(y => r(164, y, 33, 2, '#6b3c22', g));
+  const cols = ['#e8dcc0', '#7a2e2a', '#c9b27a', '#3f5f8a', '#d9d0b8', '#2f4f3a', '#b85a3a', '#efe6cf'];
+  const blues = ['#a8c8e0', '#8fb3d9', '#bcd6ea', '#9cc0de'];
+  const br = seeded(3);
+  shelves.forEach((top, si) => {
+    let x = 165; const bottom = (shelves[si + 1] || 60);
+    while (x < 195) {
+      const w = 2 + Math.floor(br() * 2), h = 9 + Math.floor(br() * 4);
+      const c = si >= 2 ? pick.call(null, br() < 0.75 ? blues : cols) : cols[Math.floor(br() * cols.length)];
+      if (si === 0 && x > 186) { r(x, bottom - 6, 6, 6, '#2b2b2b', g); r(x + 2, bottom - 9, 2, 3, '#7fb36a', g); break; }
+      r(x, bottom - Math.min(h, bottom - top - 2), w, Math.min(h, bottom - top - 2), c, g);
+      x += w + (br() < 0.15 ? 1 : 0);
+    }
+  });
+  // sombra bajo la mesa ratona
+  r(46, 80, 48, 2, 'rgba(60,20,0,0.25)', g);
+})();
+
+/* ---------------- estado ---------------- */
+const PILLOW = { x: 73, y: 91 };
+const NEAR_GABO = { x: 57, y: 95 };
+const FLOOR = { x: 113, y: 128 };
+const SCRATCH = { x: 110, y: 133 };
+const BALCONY = { x: 100, y: 62 };
+const BOWL = { x: 160, y: 88 };
+const GABO_SEAT_X = 40, GABO_Y = 82;
+
+let now = 0, phase = 'start', busy = false, soundOn = true;
+let cat, gabo, bird, parts, stats, state, tweens;
+
+function reset() {
+  cat = { x: PILLOW.x, y: PILLOW.y, pose: 'curl', flip: false, onSofa: true, jz: 0, bump: 0, emit: 'z', emitT: 0 };
+  gabo = { visible: false, x: 118, y: 175, pose: 'stand', tilt: 0, pet: false };
+  bird = null; parts = []; tweens = [];
+  stats = { descanso: 6, pancita: 4, amor: 7 };
+  state = { time: 0, timeTarget: 0, kibble: 3, actions: 0, threshold: 3 + Math.floor(Math.random() * 2), gaboActions: 0 };
+  $bub.innerHTML = '';
+  renderStats();
+}
+
+/* ---------------- tweens / tiempo ---------------- */
+function tween(dur, fn) { return new Promise(res => tweens.push({ t: 0, dur: Math.max(1, dur), fn, res })); }
+function wait(ms) { return tween(ms, () => {}); }
+
+/* ---------------- sonido ---------------- */
+let actx = null;
+function ac() { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); return actx; }
+function meowSound(pitch = 1, len = 0.55) {
+  if (!soundOn) return;
+  const a = ac(), t = a.currentTime;
+  const o = a.createOscillator(), f = a.createBiquadFilter(), g = a.createGain();
+  o.type = 'sawtooth'; f.type = 'bandpass'; f.Q.value = 2.5;
+  o.frequency.setValueAtTime(430 * pitch, t);
+  o.frequency.linearRampToValueAtTime(800 * pitch, t + len * 0.3);
+  o.frequency.linearRampToValueAtTime(520 * pitch, t + len);
+  f.frequency.setValueAtTime(900, t); f.frequency.linearRampToValueAtTime(1900, t + len * 0.3); f.frequency.linearRampToValueAtTime(1000, t + len);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.22, t + 0.05);
+  g.gain.linearRampToValueAtTime(0.14, t + len * 0.6); g.gain.linearRampToValueAtTime(0, t + len);
+  o.connect(f); f.connect(g); g.connect(a.destination); o.start(t); o.stop(t + len + 0.05);
+}
+function tone(freq, dur, type = 'square', vol = 0.06, delay = 0) {
+  if (!soundOn) return;
+  const a = ac(), t = a.currentTime + delay;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+}
+function noiseBurst(delay, dur = 0.12, vol = 0.1) {
+  if (!soundOn) return;
+  const a = ac(), t = a.currentTime + delay;
+  const b = a.createBuffer(1, Math.floor(a.sampleRate * dur), a.sampleRate), d = b.getChannelData(0);
+  for (let j = 0; j < d.length; j++) d[j] = (Math.random() * 2 - 1) * (1 - j / d.length);
+  const s = a.createBufferSource(); s.buffer = b;
+  const f = a.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1800;
+  const g = a.createGain(); g.gain.value = vol;
+  s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
+}
+const sfx = {
+  heart() { tone(880, 0.18, 'sine', 0.07); tone(1320, 0.25, 'sine', 0.06, 0.1); },
+  door() { tone(220, 0.06, 'square', 0.08); tone(160, 0.08, 'square', 0.08, 0.18); tone(330, 0.05, 'square', 0.05, 0.6); },
+  plop() { tone(140, 0.25, 'sine', 0.15); },
+  scratch() { for (let i = 0; i < 6; i++) noiseBurst(i * 0.25); },
+  jump() { tone(500, 0.08, 'square', 0.03); tone(750, 0.08, 'square', 0.03, 0.05); },
+  kibble() { for (let i = 0; i < 8; i++) tone(1200 + Math.random() * 900, 0.04, 'square', 0.03, i * 0.07); },
+  chirp() { tone(2400, 0.06, 'sine', 0.04); tone(2900, 0.05, 'sine', 0.04, 0.09); },
+};
+
+/* ---------------- UI ---------------- */
+let sayTimer = null;
+function say(s) {
+  clearInterval(sayTimer);
+  let i = 0; $text.textContent = '';
+  sayTimer = setInterval(() => { i += 1; $text.textContent = s.slice(0, i); if (i >= s.length) clearInterval(sayTimer); }, 20);
+}
+function bubble(text, x, y, ms = 1500) {
+  const b = document.createElement('div');
+  b.className = 'bubble'; b.textContent = text;
+  b.style.left = (x / W * 100) + '%'; b.style.top = (y / H * 100) + '%';
+  $bub.appendChild(b); setTimeout(() => b.remove(), ms);
+}
+function catBubble(text, ms) {
+  const s = catSprite();
+  const side = SLEEPING.includes(cat.pose) ? -1 : 1;
+  bubble(text, cat.x + side * (cat.flip ? -1 : 1) * 4, cat.y - s.h - 3, ms);
+}
+function stat(k, delta) { stats[k] = Math.max(0, Math.min(10, stats[k] + delta)); renderStats(); }
+function renderStats() {
+  for (const k of ['descanso', 'pancita', 'amor']) {
+    const el = document.getElementById('m-' + k);
+    el.innerHTML = Array.from({ length: 10 }, (_, i) => `<i class="${i < stats[k] ? 'on' : ''}"></i>`).join('');
+  }
+}
+
+const SOLO = [
+  ['dormir', '😴', 'Dormir'],
+  ['posicion', '🔄', 'Cambiar de posición'],
+  ['balcon', '🌿', 'Asomarse al balcón'],
+  ['aranar', '🐾', 'Arañar el sillón'],
+  ['comida', '🍽️', 'Maullar para pedir comida'],
+];
+const WITH = [
+  ['recibir', '💕', 'Ir a recibirlo maullando'],
+  ['mirar', '🥰', 'Quedarse mirándolo'],
+  ['seguir', '💤', 'Seguir durmiendo'],
+  ['pedir', '🍽️', 'Maullar junto al plato'],
+];
+function currentList() { return phase === 'gabo' ? WITH : phase === 'solo' ? SOLO : []; }
+function renderActions() {
+  const list = currentList();
+  const offset = phase === 'gabo' ? 6 : 1;
+  $actions.innerHTML = '';
+  list.forEach(([id, emo, label], i) => {
+    const b = document.createElement('button');
+    b.className = 'act' + (phase === 'gabo' && id !== 'pedir' ? ' love' : '');
+    b.innerHTML = `<span class="num">${i + offset}</span><span>${emo} ${label}</span>`;
+    b.disabled = busy;
+    b.onclick = () => run(id);
+    $actions.appendChild(b);
+  });
+  $reset.classList.toggle('hidden', !(phase === 'gabo' && state.gaboActions > 0));
+}
+async function run(id) {
+  if (busy) return;
+  busy = true; renderActions();
+  try {
+    if (phase === 'solo') {
+      await SOLO_ACT[id]();
+      state.actions++;
+      state.timeTarget = Math.min(0.6, state.actions * 0.15);
+      if (state.actions >= state.threshold) await gaboArrives();
+    } else if (phase === 'gabo') {
+      await GABO_ACT[id]();
+      state.gaboActions++;
+      state.timeTarget = Math.min(1, state.timeTarget + 0.08);
+    }
+  } finally {
+    busy = false; renderActions();
+  }
+}
+
+/* ---------------- movimientos del gato ---------------- */
+const isSleeping = () => SLEEPING.includes(cat.pose);
+async function wake() {
+  if (isSleeping()) { cat.emit = null; cat.pose = 'blink'; await wait(250); cat.pose = 'sit'; await wait(250); }
+  cat.emit = null;
+}
+async function walkTo(x, y, speed = 38) {
+  const sx = cat.x, sy = cat.y, d = Math.hypot(x - sx, y - sy);
+  if (d < 0.5) return;
+  if (Math.abs(x - sx) > 0.5) cat.flip = x < sx;
+  cat.pose = 'walk';
+  await tween(d / speed * 1000, p => { cat.x = sx + (x - sx) * p; cat.y = sy + (y - sy) * p; });
+  cat.pose = 'sit';
+}
+async function jumpTo(x, y, toSofa, h = 16, dur = 560) {
+  const sx = cat.x, sy = cat.y;
+  if (Math.abs(x - sx) > 0.5) cat.flip = x < sx;
+  if (toSofa) cat.onSofa = true;
+  cat.pose = 'walk'; sfx.jump();
+  await tween(dur, p => { cat.x = sx + (x - sx) * p; cat.y = sy + (y - sy) * p; cat.jz = -Math.sin(Math.PI * p) * h; });
+  cat.jz = 0; cat.pose = 'sit';
+  if (!toSofa) cat.onSofa = false;
+}
+async function goToFloor() {
+  await wake();
+  if (cat.onSofa) await jumpTo(FLOOR.x, FLOOR.y, false, 12, 520);
+}
+async function goToPillow() {
+  if (cat.onSofa) {
+    if (Math.hypot(cat.x - PILLOW.x, cat.y - PILLOW.y) > 1) { await wake(); await walkTo(PILLOW.x, PILLOW.y, 30); }
+    return;
+  }
+  await wake();
+  await walkTo(FLOOR.x, FLOOR.y);
+  await jumpTo(PILLOW.x, PILLOW.y, true, 18);
+}
+async function meowAt(text = '¡Miau!', pitch = 1) {
+  const prev = cat.pose;
+  cat.pose = 'meow'; meowSound(pitch); catBubble(text, 1300);
+  await wait(550);
+  cat.pose = prev === 'meow' ? 'sit' : prev;
+}
+function spawn(type, x, y, extra = {}) {
+  parts.push(Object.assign({ type, x, y, vx: 0, vy: -8, life: 2, max: 2, ph: Math.random() * 6 }, extra));
+}
+function catHead() {
+  const s = catSprite();
+  const side = (SLEEPING.includes(cat.pose) ? -1 : 1) * (cat.flip ? -1 : 1);
+  return { x: cat.x + side * (s.w / 2 - 3), y: cat.y - s.h + cat.jz };
+}
+
+/* ---------------- Gabo ---------------- */
+async function gaboWalk(x, y, speed = 30) {
+  const sx = gabo.x, sy = gabo.y, d = Math.hypot(x - sx, y - sy);
+  gabo.pose = 'walk';
+  await tween(d / speed * 1000, p => { gabo.x = sx + (x - sx) * p; gabo.y = sy + (y - sy) * p; });
+  gabo.pose = 'stand';
+}
+function gaboHeart() { spawn('heart', gabo.x + rnd(-3, 3), gabo.pose === 'sit' ? 60 : 22, { vy: -7 }); sfx.heart(); }
+
+async function gaboArrives() {
+  phase = 'arriving'; renderActions();
+  await wait(600);
+  say('Clic, clac... ¡se escucha la llave en la puerta!');
+  sfx.door();
+  if (!isSleeping()) { await wait(400); catBubble('!', 1200); }
+  await wait(1400);
+  gabo.visible = true; gabo.x = 118; gabo.y = 178; gabo.pose = 'walk';
+  say('¡Llegó Gabo! Entra con la mochila del día a cuestas.');
+  state.timeTarget = 0.7;
+  await gaboWalk(118, GABO_Y, 28);
+  await wait(250);
+  await gaboWalk(GABO_SEAT_X, GABO_Y, 30);
+  await wait(300);
+  gabo.pose = 'sit'; sfx.plop();
+  say('Gabo se deja caer en el sillón. Fue un día largo. ¿Qué hace Panzas?');
+  await wait(400);
+  phase = 'gabo';
+}
+
+/* ---------------- acciones: Panzas sola ---------------- */
+const NEXT_POSE = { curl: 'belly', belly: 'stretch', stretch: 'curl' };
+const POSE_TEXT = {
+  belly: 'Panzas se da vuelta y queda panza arriba, honrando su nombre. Sigue durmiendo como si nada.',
+  stretch: 'Panzas se estira larguísimo, como un fideo negro... y sigue durmiendo.',
+  curl: 'Panzas vuelve a hacerse bolita. Forma de rosca perfecta. Zzz...',
+};
+const SOLO_ACT = {
+  async dormir() {
+    const was = isSleeping() && cat.onSofa;
+    await goToPillow();
+    cat.flip = false;
+    if (!was) cat.pose = 'curl';
+    cat.emit = 'z';
+    say(was ? pick([
+      'Panzas ya estaba durmiendo... y decide dormir todavía más. Profesional del descanso.',
+      'Más siesta. El oso es cómodo y la tarde es larga.',
+    ]) : 'Panzas se acurruca sobre el oso y cierra los ojos. Zzz...');
+    stat('descanso', 3);
+    await wait(2400);
+  },
+  async posicion() {
+    if (!(isSleeping() && cat.onSofa)) {
+      await goToPillow();
+      cat.flip = false; cat.pose = 'curl'; cat.emit = 'z';
+      await wait(700);
+    }
+    const next = NEXT_POSE[cat.pose] || 'belly';
+    cat.emit = null;
+    await tween(260, p => { cat.jz = -Math.sin(Math.PI * p) * 3; });
+    cat.jz = 0; cat.pose = next; cat.flip = false; cat.emit = 'z';
+    say(POSE_TEXT[next]);
+    stat('descanso', 2);
+    await wait(2400);
+  },
+  async balcon() {
+    await goToFloor();
+    await walkTo(BALCONY.x, BALCONY.y, 36);
+    cat.pose = 'back';
+    say('Panzas se asoma al balcón. Plantas, sol, un pajarito... qué vida.');
+    await wait(700);
+    bird = { x: 72, y: 20, t: 0 }; sfx.chirp();
+    await wait(900);
+    catBubble('!', 900);
+    await wait(900);
+    catBubble('ek-ek-ek', 1300); sfx.chirp();
+    await wait(1900);
+    stat('amor', 0);
+  },
+  async aranar() {
+    await goToFloor();
+    await walkTo(SCRATCH.x, SCRATCH.y, 36);
+    cat.flip = true; cat.pose = 'scratch';
+    say('Rrrasc, rrrasc. Panzas deja su firma en el sillón. El sillón ya lo conoce.');
+    sfx.scratch();
+    for (let i = 0; i < 14; i++) {
+      spawn('fluff', 101 + rnd(-1, 2), 114 + rnd(-4, 4), { vx: rnd(2, 10), vy: rnd(-4, 6), life: 1.2, max: 1.2, c: pick(['#3b4a6e', '#2b6b77', '#5c6d95']) });
+      await wait(150);
+    }
+    catBubble('rrrasc', 900);
+    cat.pose = 'sit';
+    await wait(900);
+  },
+  async comida() {
+    await goToFloor();
+    await walkTo(BOWL.x, BOWL.y, 38);
+    cat.flip = true; cat.pose = 'sit';
+    await meowAt('¡Miaaau!', 1);
+    await wait(500);
+    await meowAt('¡MIAU!', 1.15);
+    say('Panzas mira el plato. Mira la puerta. Mira el plato otra vez. Nadie viene... todavía.');
+    await wait(1800);
+  },
+};
+
+/* ---------------- acciones: con Gabo ---------------- */
+const GABO_ACT = {
+  async recibir() {
+    gabo.pet = false;
+    await wake();
+    if (cat.onSofa) await walkTo(NEAR_GABO.x, NEAR_GABO.y, 34);
+    else { await walkTo(FLOOR.x, FLOOR.y, 44); await jumpTo(NEAR_GABO.x, NEAR_GABO.y, true, 22, 650); }
+    cat.flip = true; cat.pose = 'sit';
+    say('¡Miau, miau! Panzas va corriendo a saludar a Gabo y le regala un cabezazo de amor.');
+    await meowAt('¡Miau!', 1.1);
+    gabo.tilt = 1; gabo.pet = true;
+    cat.emit = 'heart';
+    for (let i = 0; i < 3; i++) {
+      await tween(300, p => { cat.bump = -Math.sin(Math.PI * p) * 2; });
+      cat.bump = 0; await wait(250);
+    }
+    await meowAt('prrr ♥', 1.3);
+    gaboHeart();
+    stat('amor', 3);
+    await wait(1400);
+    gabo.tilt = 0;
+  },
+  async mirar() {
+    gabo.pet = false;
+    await goToPillow();
+    cat.flip = true; cat.pose = 'love'; cat.emit = 'heart';
+    say('Panzas se queda en el sillón mirando a Gabo. Parpadea leeento: en idioma gato eso quiere decir «te quiero».');
+    await wait(1800);
+    gaboHeart();
+    stat('amor', 2);
+    await wait(1600);
+  },
+  async seguir() {
+    gabo.pet = false;
+    const was = isSleeping() && cat.onSofa;
+    await goToPillow();
+    cat.flip = false;
+    if (!was) cat.pose = 'curl';
+    cat.emit = 'z';
+    say('Panzas sigue durmiendo. Gabo lo mira y sonríe. (No le vemos la cara, pero sonríe, creenos.)');
+    await wait(1500);
+    gaboHeart();
+    stat('descanso', 3);
+    await wait(1600);
+  },
+  async pedir() {
+    gabo.pet = false;
+    await goToFloor();
+    await walkTo(BOWL.x, BOWL.y, 40);
+    cat.flip = true; cat.pose = 'sit';
+    say('¡MIAU! Panzas se planta junto al plato y mira fijo a Gabo. El mensaje es clarísimo.');
+    await meowAt('¡Miaaau!', 1);
+    await wait(400);
+    await meowAt('¡MIAU!', 1.2);
+    await wait(300);
+    gabo.pose = 'stand'; sfx.plop();
+    await wait(400);
+    await gaboWalk(126, GABO_Y, 34);
+    say('Gabo entiende perfectamente y le sirve una buena porción. Prrr.');
+    sfx.kibble();
+    for (let i = 0; i < 6; i++) { spawn('spark', rnd(140, 151), rnd(76, 82), { vy: -5, life: 0.9, max: 0.9 }); await wait(90); }
+    state.kibble = 8;
+    await wait(400);
+    cat.pose = 'eat';
+    catBubble('ñam ñam', 1400);
+    gaboHeart();
+    const back = gaboWalk(GABO_SEAT_X, GABO_Y, 30).then(() => { gabo.pose = 'sit'; sfx.plop(); });
+    for (let i = 0; i < 4; i++) { await wait(700); state.kibble = Math.max(2, state.kibble - 1); }
+    catBubble('ñam', 900);
+    await back;
+    stat('pancita', 5);
+    cat.pose = 'sit';
+    await wait(600);
+  },
+};
+
+/* ---------------- dibujo de la escena ---------------- */
+function drawWindow() {
+  const X = 78, Y = 6, Wd = 44, Hd = 50, t = state.time;
+  const bands = [['#b9dcef', '#e99b74'], ['#cfe7f3', '#f1b285'], ['#e2f0f6', '#f6c99a'], ['#eef6f8', '#fadbb0']];
+  bands.forEach(([a, b], i) => r(X, Y + i * 8, Wd, i === 3 ? Hd - 24 : 8, lerpC(a, b, t)));
+  // edificios del fondo
+  r(X + 27, Y + 6, 17, 30, lerpC('#ddd5c6', '#d8b9a0', t)); r(X, Y + 14, 13, 22, lerpC('#cfc6b6', '#c9a990', t));
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) r(X + 30 + i * 5, Y + 9 + j * 8, 2, 3, t > 0.6 ? '#ffd98a' : '#a9b7c2');
+  r(X + 3, Y + 18, 3, 3, '#a9b7c2'); r(X + 8, Y + 25, 3, 3, '#a9b7c2');
+  // pájaro
+  if (bird) {
+    ctx.save(); ctx.beginPath(); ctx.rect(X, Y, Wd, Hd); ctx.clip();
+    const up = Math.floor(now / 120) % 2;
+    const bx = Math.round(bird.x), by = Math.round(bird.y + Math.sin(bird.t * 6) * 2);
+    r(bx, by, 2, 1, '#4a3a33'); r(bx - 2, by - (up ? 1 : -1), 2, 1, '#4a3a33'); r(bx + 2, by - (up ? 1 : -1), 2, 1, '#4a3a33');
+    ctx.restore();
+  }
+  // baranda y piso del balcón
+  r(X, Y + 30, Wd, 2, '#3e4a40');
+  for (let i = 1; i < Wd; i += 4) r(X + i, Y + 32, 1, Hd - 36, '#3e4a40');
+  r(X, Y + Hd - 4, Wd, 4, '#b06a48');
+  // plantas
+  r(X + 3, Y + Hd - 11, 8, 7, '#b5593a'); r(X + 3, Y + Hd - 11, 8, 1, '#cf7350');
+  [[X + 2, Y + Hd - 16, 4, 5], [X + 6, Y + Hd - 19, 3, 8], [X + 9, Y + Hd - 15, 4, 4], [X + 4, Y + Hd - 21, 2, 4]].forEach(([a, b, c, d]) => r(a, b, c, d, '#5f9a4e'));
+  r(X + 7, Y + Hd - 18, 1, 6, '#7fbd66');
+  r(X + 32, Y + Hd - 12, 8, 8, '#8f949a');
+  [[X + 31, Y + Hd - 20, 3, 8], [X + 35, Y + Hd - 24, 3, 12], [X + 38, Y + Hd - 18, 3, 6]].forEach(([a, b, c, d]) => r(a, b, c, d, '#4f8a45'));
+  // marco de la puerta-ventana
+  const FR = '#e9e6dd';
+  r(X - 2, Y - 2, Wd + 4, 2, FR); r(X - 2, Y - 2, 2, Hd + 2, FR); r(X + Wd, Y - 2, 2, Hd + 2, FR);
+  r(X + 21, Y, 2, Hd, FR); r(X + 19, Y + 26, 1, 5, '#222');
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  for (let i = 0; i < 10; i++) { ctx.fillRect(X + 4 + i, Y + 4 + i * 2, 1, 2); ctx.fillRect(X + 26 + i, Y + 4 + i * 2, 1, 2); }
+}
+function drawCurtain(x0, w) {
+  ctx.globalAlpha = 0.8;
+  r(x0, 4, w, 55, '#f1e3a0');
+  for (let i = 1; i < w; i += 3) r(x0 + i, 4, 1, 55, '#dcc97f');
+  r(x0, 57, w + 1, 3, '#e5d38c');
+  ctx.globalAlpha = 1;
+  for (let i = 2; i < w; i += 6) r(x0 + i, 6, 1, 48, 'rgba(255,255,235,0.55)');
+}
+function drawSunlight() {
+  const a = 0.17 * (1 - state.time * 0.6);
+  ctx.fillStyle = state.time > 0.5 ? `rgba(255,190,120,${a})` : `rgba(255,242,190,${a})`;
+  for (let y = FLOOR_Y; y < 102; y++) {
+    const t = (y - FLOOR_Y) / 44, x0 = 86 - t * 12, x1 = 116 + t * 22;
+    ctx.fillRect(Math.round(x0), y, Math.round(x1 - x0), 1);
+  }
+}
+function drawTable() {
+  r(48, 69, 4, 12, '#5a4636'); r(88, 69, 4, 12, '#5a4636');
+  r(48, 75, 44, 2, '#5a4636'); r(60, 73, 8, 2, '#1e1e22');
+  r(46, 64, 48, 5, '#6d5642'); r(46, 64, 48, 1, '#8a735c');
+  r(52, 62, 7, 2, '#202024'); r(53, 62, 1, 1, '#c33'); // control remoto
+  r(61, 62, 13, 2, '#b8607e'); r(62, 62, 5, 1, '#e8b04a');  // pad de colores
+  r(77, 60, 11, 4, '#8e8e94'); for (let i = 78; i < 88; i += 2) r(i, 60, 1, 4, '#b5b5ba'); // canastito
+  r(66, 63, 4, 1, '#9fd3c7');
+}
+function drawBowls() {
+  ctx.fillStyle = 'rgba(60,20,0,0.25)'; ctx.fillRect(127, 86, 25, 2);
+  r(128, 83, 10, 3, 'rgba(205,232,242,0.75)'); r(128, 82, 10, 1, '#f2fbff'); r(130, 83, 6, 1, '#9fd0e8');
+  r(140, 83, 10, 3, '#2a8a96'); r(140, 82, 10, 1, '#55b8c2'); r(141, 82, 8, 1, '#1d5f68');
+  const kb = [[142, 82], [144, 81], [146, 82], [143, 81], [147, 81], [145, 82], [142, 81], [148, 82]];
+  for (let i = 0; i < state.kibble; i++) px(kb[i][0], kb[i][1], i % 2 ? '#8a5a2a' : '#a8703a');
+}
+// asiento del sillón, visto por encima del respaldo (con el almohadón oso apoyado)
+function drawSofaSeat() {
+  ctx.fillStyle = 'rgba(60,15,0,0.22)'; ctx.fillRect(2, 80, 100, 3);
+  r(0, 81, 9, 15, '#2b6b77'); r(0, 81, 9, 2, '#3b8796');
+  r(94, 81, 9, 15, '#2b6b77'); r(94, 81, 9, 2, '#3b8796');
+  r(9, 83, 85, 13, '#3f4d72'); r(9, 83, 85, 1, '#52628c');
+  r(37, 83, 1, 13, '#2e3a58'); r(66, 83, 1, 13, '#2e3a58');
+  r(9, 91, 85, 5, '#36436a');
+  // almohadón oso, acostado sobre el asiento contra el respaldo
+  ctx.fillStyle = 'rgba(20,20,40,0.35)'; ctx.fillRect(61, 93, 32, 2);
+  r(62, 86, 22, 8, '#e7e1d6'); r(61, 87, 24, 7, '#e7e1d6'); r(62, 92, 22, 2, '#cfc6b8'); r(63, 86, 10, 1, '#f4f0e8');
+  r(81, 82, 12, 12, '#d9d1c4'); r(80, 83, 14, 10, '#d9d1c4');
+  r(81, 80, 3, 3, '#bfb4a4'); r(90, 80, 3, 3, '#bfb4a4');
+  r(84, 88, 6, 4, '#eee8de');
+  px(83, 86, '#2a2420'); px(90, 86, '#2a2420'); r(86, 88, 2, 1, '#5a4a3f');
+}
+function drawSofa() {
+  ctx.fillStyle = 'rgba(60,15,0,0.3)'; ctx.fillRect(1, 131, 104, 5);
+  r(0, 96, 9, 36, '#2b6b77'); r(8, 96, 1, 36, '#245a64');
+  r(94, 96, 9, 36, '#2b6b77'); r(94, 96, 1, 36, '#245a64');
+  r(7, 94, 88, 38, '#34415f'); r(6, 96, 90, 36, '#34415f');
+  r(7, 94, 88, 2, '#4b5c86'); r(6, 96, 90, 1, '#3f4d70');
+  for (const sx of [36, 66]) r(sx, 99, 1, 30, '#28324c');
+  for (let yy = 100; yy < 128; yy += 3) for (let xx = 9; xx < 93; xx += 4) px(xx + ((yy / 3) % 2 ? 2 : 0), yy, '#3b4869');
+  r(6, 129, 90, 3, '#28324c');
+  [[8, 132], [91, 132], [1, 132], [100, 132]].forEach(([x, y]) => r(x, y, 2, 3, '#5b3a24'));
+}
+function drawSofaTop() {
+  // mantita
+  r(8, 92, 16, 3, '#9db4c8'); r(10, 95, 13, 13, '#8aa3ba');
+  r(10, 98, 13, 1, '#e9eef2'); r(10, 102, 13, 1, '#5a7590'); r(10, 105, 13, 1, '#e9eef2');
+  for (let i = 10; i < 23; i += 2) px(i, 108, '#e9eef2');
+  // brazo de Gabo apoyado en el respaldo
+  if (gabo.visible && gabo.pose === 'sit') {
+    const x = Math.round(gabo.x);
+    r(x - 24, 92, 14, 3, G.shirt); r(x - 24, 94, 14, 1, G.shirt2); r(x - 27, 92, 3, 3, G.skin);
+  }
+}
+function drawKeyboard() {
+  ctx.fillStyle = 'rgba(60,15,0,0.3)'; ctx.fillRect(152, 104, 4, 46);
+  r(156, 102, 44, 48, '#1b1b1f'); r(156, 102, 44, 1, '#3a3a40');
+  r(161, 106, 23, 44, '#f2efe7');
+  for (let y = 108; y < 150; y += 3) r(161, y, 23, 1, '#b9b4a8');
+  const pattern = [1, 1, 0, 1, 1, 1, 0];
+  for (let k = 0, y = 107; y < 148; k++, y += 3) if (pattern[k % 7]) r(161, y + 1, 13, 2, '#141416');
+  r(187, 108, 11, 4, '#2c2c33'); r(188, 109, 6, 2, '#7ad19b');
+  for (let i = 0; i < 4; i++) { px(188 + i * 3, 116, '#8c8c96'); px(188 + i * 3, 120, '#8c8c96'); }
+  r(188, 125, 3, 3, '#55555e'); r(194, 125, 3, 3, '#55555e');
+  // trapito verde
+  r(158, 98, 22, 8, '#c8e64b'); r(157, 100, 4, 7, '#c8e64b'); r(159, 104, 20, 2, '#a7c43a'); r(164, 99, 1, 6, '#a7c43a'); r(171, 98, 1, 7, '#a7c43a');
+}
+
+const G = { hair: '#131317', hair2: '#2c2c36', skin: '#d39a74', shirt: '#5f8a6e', shirt2: '#4b7259', shirt3: '#7aa486', jeans: '#3a4a73', jeans2: '#2d3a5c', shoe: '#2a211c' };
+function gHead(cx, bottom, tilt = 0) {
+  const x = cx + tilt;
+  r(x - 5, bottom - 11, 10, 11, G.hair); r(x - 6, bottom - 9, 12, 7, G.hair);
+  r(x - 3, bottom - 10, 4, 1, G.hair2); r(x - 4, bottom - 9, 1, 2, G.hair2); r(x + 1, bottom - 11, 2, 1, G.hair2);
+  r(x - 7, bottom - 6, 1, 3, G.skin); r(x + 6, bottom - 6, 1, 3, G.skin);
+}
+function gTorso(cx, top, h) {
+  r(cx - 8, top, 16, h, G.shirt); r(cx - 9, top + 1, 18, h - 1, G.shirt);
+  r(cx - 9, top + 1, 2, h - 1, G.shirt2); r(cx + 7, top + 1, 2, h - 1, G.shirt2);
+  r(cx, top + 3, 1, h - 5, G.shirt2); r(cx - 6, top, 12, 1, G.shirt3);
+}
+function drawGabo() {
+  if (!gabo.visible) return;
+  const x = Math.round(gabo.x), y = Math.round(gabo.y);
+  if (gabo.pose === 'sit') {
+    const seat = y + 14;
+    gTorso(x, seat - 20, 20);
+    r(x - 11, seat - 19, 2, 9, G.shirt2);                 // brazo que va al respaldo
+    if (!gabo.pet) r(x + 9, seat - 19, 2, 14, G.shirt2);  // brazo al costado
+    r(x - 2, seat - 22, 4, 2, G.skin);
+    gHead(x, seat - 21, gabo.tilt);
+    return;
+  }
+  const walking = gabo.pose === 'walk';
+  const fr = walking ? Math.floor(now / 170) % 2 : 0;
+  const bob = walking && fr ? 1 : 0;
+  const lL = walking && fr === 0 ? 2 : 0, rL = walking && fr === 1 ? 2 : 0;
+  r(x - 7, y - 24, 6, 22 - lL, G.jeans); r(x + 1, y - 24, 6, 22 - rL, G.jeans);
+  r(x - 7, y - 24, 1, 22 - lL, G.jeans2); r(x + 6, y - 24, 1, 22 - rL, G.jeans2);
+  r(x - 8, y - 2 - lL, 7, 2, G.shoe); r(x + 1, y - 2 - rL, 7, 2, G.shoe);
+  r(x - 8, y - 26, 16, 3, G.jeans2);
+  gTorso(x, y - 45 - bob, 20);
+  const sw = walking ? (fr ? 1 : -1) : 0;
+  r(x - 11, y - 44 - bob + sw, 2, 17, G.shirt2); r(x + 9, y - 44 - bob - sw, 2, 17, G.shirt2);
+  r(x - 11, y - 27 - bob + sw, 2, 3, G.skin); r(x + 9, y - 27 - bob - sw, 2, 3, G.skin);
+  r(x - 2, y - 47 - bob, 4, 2, G.skin);
+  gHead(x, y - 46 - bob, gabo.tilt);
+}
+function drawPetArm() {
+  if (!(gabo.visible && gabo.pose === 'sit' && gabo.pet)) return;
+  const sx = Math.round(gabo.x) + 10, sy = 79;
+  const bob = Math.floor(now / 260) % 2;
+  const tx = cat.x + cat.bump + 1, ty = cat.y - 15 + bob;
+  const steps = 12;
+  for (let i = 0; i <= steps; i++) {
+    const p = i / steps;
+    r(sx + (tx - sx) * p, sy + (ty - sy) * p - Math.sin(Math.PI * p) * 3, 2, 3, i < steps - 1 ? G.shirt : G.skin);
+  }
+  r(tx - 1, ty, 4, 2, G.skin);
+}
+
+function catSprite() {
+  const t = now;
+  switch (cat.pose) {
+    case 'walk': return cat.jz ? SPR.walk[1] : SPR.walk[Math.floor(t / 140) % 2];
+    case 'sit': return (t % 3400 < 140) ? SPR.blink : SPR.sit;
+    case 'love': return (t % 2000 < 900) ? SPR.blink : SPR.sit;
+    case 'back': return SPR.back[Math.floor(t / 650) % 2];
+    case 'scratch': return SPR.scratch[Math.floor(t / 120) % 2];
+    case 'eat': return SPR.eat[Math.floor(t / 260) % 2];
+    default: return SPR[cat.pose] || SPR.sit;
+  }
+}
+function drawCat() {
+  const s = catSprite();
+  if (!cat.onSofa) { ctx.fillStyle = 'rgba(40,10,0,0.28)'; ctx.fillRect(Math.round(cat.x - s.w / 2 + 2), Math.round(cat.y - 1), s.w - 4, 2); }
+  let y = cat.y + cat.jz;
+  // respiración suave mientras duerme
+  if (SLEEPING.includes(cat.pose) && Math.floor(now / 900) % 2) y += 0.5;
+  drawSpr(s, cat.x + cat.bump, y, cat.flip);
+}
+
+function drawParticles() {
+  for (const p of parts) {
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 0.6));
+    const x = p.x + (p.type === 'z' || p.type === 'heart' ? Math.sin(p.ph + (p.max - p.life) * 3) * 2 : 0);
+    if (p.type === 'z') drawSpr(SPR.z, x, p.y);
+    else if (p.type === 'heart') drawSpr(SPR.heart, x, p.y);
+    else if (p.type === 'spark') drawSpr(SPR.spark, x, p.y);
+    else if (p.type === 'fluff') r(x, p.y, 1, 1, p.c);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function render() {
+  ctx.drawImage(bg, 0, 0);
+  drawWindow();
+  drawCurtain(66, 18); drawCurtain(116, 18);
+  r(62, 3, 76, 1, '#8a7a5a');
+  drawSunlight();
+  const list = [
+    { y: 81, d: drawTable }, { y: 83, d: drawSofaSeat }, { y: 86, d: drawBowls },
+    { y: 132, d: drawSofa }, { y: 133, d: drawSofaTop }, { y: 150, d: drawKeyboard },
+    { y: cat.onSofa ? 134 : cat.y, d: drawCat },
+  ];
+  if (gabo.visible) list.push({ y: gabo.pose === 'sit' ? 84 : gabo.y, d: drawGabo });
+  list.sort((a, b) => a.y - b.y).forEach(o => o.d());
+  drawPetArm();
+  drawParticles();
+  // luz de la tarde
+  if (state.time > 0) { ctx.fillStyle = `rgba(255,140,60,${state.time * 0.11})`; ctx.fillRect(0, 0, W, H); }
+  if (state.time > 0.6) { ctx.fillStyle = `rgba(40,20,60,${(state.time - 0.6) * 0.22})`; ctx.fillRect(0, 0, W, H); }
+}
+
+/* ---------------- loop ---------------- */
+let last = performance.now();
+function update(dt) {
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const tw = tweens[i]; tw.t += dt;
+    const p = Math.min(1, tw.t / tw.dur);
+    tw.fn(p);
+    if (p >= 1) { tweens.splice(i, 1); tw.res(); }
+  }
+  state.time += (state.timeTarget - state.time) * Math.min(1, dt / 1800);
+  // emisores
+  cat.emitT += dt;
+  if (cat.emit === 'z' && cat.emitT > 1000 && isSleeping()) {
+    cat.emitT = 0; const h = catHead(); spawn('z', h.x, h.y - 1, { vy: -5, life: 2.4, max: 2.4 });
+  } else if (cat.emit === 'heart' && cat.emitT > 750) {
+    cat.emitT = 0; const h = catHead(); spawn('heart', h.x, h.y - 1, { vy: -7, life: 1.8, max: 1.8 });
+    if (Math.random() < 0.5) sfx.heart();
+  }
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i]; const s = dt / 1000;
+    p.x += p.vx * s; p.y += p.vy * s; p.life -= s;
+    if (p.type === 'fluff') p.vy += 20 * s;
+    if (p.life <= 0) parts.splice(i, 1);
+  }
+  if (bird) { bird.t += dt / 1000; bird.x += 22 * dt / 1000; if (bird.x > 130) bird = null; }
+}
+function tick(t) {
+  const dt = Math.min(100, Math.max(0, t - last)); last = t; now = t;
+  update(dt); render();
+}
+function frame(t) { tick(t); requestAnimationFrame(frame); }
+// respaldo por si el navegador frena requestAnimationFrame
+setInterval(() => { const t = performance.now(); if (t - last > 60) tick(t); }, 40);
+
+/* ---------------- arranque ---------------- */
+reset();
+requestAnimationFrame(frame);
+
+document.getElementById('go').onclick = () => {
+  try { ac().resume(); } catch (e) {}
+  document.getElementById('start').classList.add('hidden');
+  phase = 'solo';
+  say('Es una mañana tranquila en el living. Panzas duerme sobre su oso favorito. ¿Qué hace Panzas?');
+  renderActions();
+};
+$reset.onclick = () => {
+  if (busy) return;
+  reset(); phase = 'solo';
+  say('Amanece un día nuevo. Gabo salió temprano y Panzas vuelve a tener el living para él solo.');
+  renderActions();
+};
+const $snd = document.getElementById('snd');
+$snd.onclick = () => { soundOn = !soundOn; $snd.textContent = soundOn ? '🔊' : '🔇'; };
+document.addEventListener('keydown', e => {
+  const n = parseInt(e.key, 10); if (isNaN(n)) return;
+  const list = currentList(), offset = phase === 'gabo' ? 6 : 1;
+  const item = list[n - offset]; if (item) run(item[0]);
+});
+})();
+</script>
+</body>
+</html>
