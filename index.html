@@ -175,11 +175,18 @@ const SIT = [
   "..kkkkkkkkkkkk..",
 ];
 const BLINK = SIT.map((s, i) => i === 4 ? ".........kgkkkgk" : s);
+// bañarse: pata levantada, lengüita afuera, pata que frota la cara
+const LICK_PAW = SIT.map((s, i) => i === 4 ? ".........kgkkkgk" : i === 6 ? "..........kkkkkk" : i === 7 ? ".......kkkkkkkkk" : i === 8 ? "......kkkkkkkkk." : s);
+const LICK_TONGUE = LICK_PAW.map((s, i) => i === 6 ? "..........kkpkkk" : s);
+const LICK_FACE = LICK_PAW.map((s, i) => i === 4 ? ".........kgkkkkk" : i === 3 ? ".........kkkkkkkk" : s);
 const MEOW = SIT.map((s, i) => i === 4 ? ".........kgkkkgk" : i === 5 ? ".........kkkpkkk" : i === 6 ? "..........kkpkk." : s);
 const SPR = {
   sit: makeSprite(SIT),
   blink: makeSprite(BLINK),
   meow: makeSprite(MEOW),
+  lick: [
+    makeSprite(LICK_TONGUE), makeSprite(LICK_PAW), makeSprite(LICK_FACE),
+  ],
   walk: [
     makeSprite([
       "..............k...k.",
@@ -527,6 +534,7 @@ const sfx = {
   scratch() { for (let i = 0; i < 6; i++) noiseBurst(i * 0.25); },
   jump() { tone(500, 0.08, 'square', 0.03); tone(750, 0.08, 'square', 0.03, 0.05); },
   kibble() { for (let i = 0; i < 8; i++) tone(1200 + Math.random() * 900, 0.04, 'square', 0.03, i * 0.07); },
+  lick() { if (!soundOn) return; const a = ac(); for (let i = 0; i < 8; i++) { const t = a.currentTime + i * 0.38; const o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(260, t); o.frequency.exponentialRampToValueAtTime(140, t + 0.09); g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.1); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + 0.12); } },
   chirp() { tone(2400, 0.06, 'sine', 0.04); tone(2900, 0.05, 'sine', 0.04, 0.09); },
 };
 
@@ -562,21 +570,23 @@ const SOLO = [
   ['balcon', '🌿', 'Asomarse al balcón'],
   ['aranar', '🐾', 'Arañar el sillón'],
   ['comida', '🍽️', 'Maullar para pedir comida'],
+  ['banio', '🛁', 'Bañarse (a lengüetazos)'],
 ];
 const WITH = [
   ['recibir', '💕', 'Ir a recibirlo maullando'],
   ['mirar', '🥰', 'Quedarse mirándolo'],
   ['seguir', '💤', 'Seguir durmiendo'],
   ['pedir', '🍽️', 'Maullar junto al plato'],
+  ['banio', '🛁', 'Bañarse al lado de Gabo'],
 ];
 function currentList() { return phase === 'gabo' ? WITH : phase === 'solo' ? SOLO : []; }
 function renderActions() {
   const list = currentList();
-  const offset = phase === 'gabo' ? 6 : 1;
+  const offset = 1;
   $actions.innerHTML = '';
   list.forEach(([id, emo, label], i) => {
     const b = document.createElement('button');
-    b.className = 'act' + (phase === 'gabo' && id !== 'pedir' ? ' love' : '');
+    b.className = 'act' + (phase === 'gabo' && id !== 'pedir' && id !== 'banio' ? ' love' : '');
     b.innerHTML = `<span class="num">${i + offset}</span><span>${emo} ${label}</span>`;
     b.disabled = busy;
     b.onclick = () => run(id);
@@ -683,6 +693,29 @@ async function gaboArrives() {
   phase = 'gabo';
 }
 
+/* ---------------- bañarse (sirve sola o con Gabo) ---------------- */
+async function bath(withGabo) {
+  gabo.pet = false;
+  await wake();
+  if (cat.pose === 'back' || cat.pose === 'eat' || cat.pose === 'love') cat.pose = 'sit';
+  if (withGabo && cat.onSofa) cat.flip = true;
+  await wait(300);
+  cat.pose = 'lick'; sfx.lick();
+  say(withGabo
+    ? 'Panzas se baña tranquilo al lado de Gabo. Pata, cara, oreja... Gabo lo mira: es hipnótico.'
+    : 'Panzas se da un baño a lengüetazos. Pata, cara, oreja, panza... sin apuro, como corresponde.');
+  await wait(1600);
+  catBubble('lamp lamp', 1200);
+  await wait(1500);
+  const h = catHead();
+  for (let i = 0; i < 6; i++) { spawn('spark', h.x + rnd(-8, 8), h.y + rnd(0, 14), { vy: -6, life: 0.9, max: 0.9 }); await wait(110); }
+  cat.pose = 'sit';
+  catBubble('✨ reluciente', 1400);
+  if (withGabo) gaboHeart();
+  stat('descanso', 1);
+  await wait(1300);
+}
+
 /* ---------------- acciones: Panzas sola ---------------- */
 const NEXT_POSE = { curl: 'belly', belly: 'stretch', stretch: 'curl' };
 const POSE_TEXT = {
@@ -746,6 +779,7 @@ const SOLO_ACT = {
     cat.pose = 'sit';
     await wait(900);
   },
+  banio() { return bath(false); },
   async comida() {
     await goToFloor();
     await walkTo(BOWL.x, BOWL.y, 38);
@@ -803,6 +837,7 @@ const GABO_ACT = {
     stat('descanso', 3);
     await wait(1600);
   },
+  banio() { return bath(true); },
   async pedir() {
     gabo.pet = false;
     await goToFloor();
@@ -1013,6 +1048,7 @@ function catSprite() {
     case 'back': return SPR.back[Math.floor(t / 650) % 2];
     case 'scratch': return SPR.scratch[Math.floor(t / 120) % 2];
     case 'eat': return SPR.eat[Math.floor(t / 260) % 2];
+    case 'lick': return SPR.lick[[0, 1, 0, 1, 0, 1, 2, 2, 2][Math.floor(t / 190) % 9]];
     default: return SPR[cat.pose] || SPR.sit;
   }
 }
@@ -1112,7 +1148,7 @@ const $snd = document.getElementById('snd');
 $snd.onclick = () => { soundOn = !soundOn; $snd.textContent = soundOn ? '🔊' : '🔇'; };
 document.addEventListener('keydown', e => {
   const n = parseInt(e.key, 10); if (isNaN(n)) return;
-  const list = currentList(), offset = phase === 'gabo' ? 6 : 1;
+  const list = currentList(), offset = 1;
   const item = list[n - offset]; if (item) run(item[0]);
 });
 })();
