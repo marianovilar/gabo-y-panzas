@@ -872,7 +872,7 @@ const GABO_ACT = {
 /* ---------------- dibujo de la escena ---------------- */
 function drawWindow() {
   const X = 78, Y = 6, Wd = 44, Hd = 50, t = state.time;
-  const bands = [['#b9dcef', '#e99b74'], ['#cfe7f3', '#f1b285'], ['#e2f0f6', '#f6c99a'], ['#eef6f8', '#fadbb0']];
+  const bands = [['#a9bccb', '#b98f86'], ['#b9c9d5', '#c9a092'], ['#c8d5de', '#d6b2a0'], ['#d6e0e6', '#e0c3ae']]; // cielo de llovizna
   bands.forEach(([a, b], i) => r(X, Y + i * 8, Wd, i === 3 ? Hd - 24 : 8, lerpC(a, b, t)));
   // edificios del fondo
   r(X + 27, Y + 6, 17, 30, lerpC('#ddd5c6', '#d8b9a0', t)); r(X, Y + 14, 13, 22, lerpC('#cfc6b6', '#c9a990', t));
@@ -896,6 +896,17 @@ function drawWindow() {
   r(X + 7, Y + Hd - 18, 1, 6, '#7fbd66');
   r(X + 32, Y + Hd - 12, 8, 8, '#8f949a');
   [[X + 31, Y + Hd - 20, 3, 8], [X + 35, Y + Hd - 24, 3, 12], [X + 38, Y + Hd - 18, 3, 6]].forEach(([a, b, c, d]) => r(a, b, c, d, '#4f8a45'));
+  // llovizna
+  ctx.save(); ctx.beginPath(); ctx.rect(X, Y, Wd, Hd); ctx.clip();
+  ctx.fillStyle = 'rgba(110,135,165,0.6)';
+  for (let i = 0; i < 26; i++) {
+    const dy = (i * 53 + now * 0.07) % Hd, dx = (i * 37 + dy * 0.25) % (Wd + 6) - 3;
+    ctx.fillRect(Math.round(X + dx), Math.round(Y + dy), 1, 3);
+  }
+  // salpicaduras en el piso del balcón
+  ctx.fillStyle = 'rgba(235,242,250,0.7)';
+  for (let i = 0; i < 4; i++) if (Math.floor(now / 170 + i * 3) % 5 === 0) ctx.fillRect(X + 4 + i * 11, Y + Hd - 4, 2, 1);
+  ctx.restore();
   // marco de la puerta-ventana
   const FR = '#e9e6dd';
   r(X - 2, Y - 2, Wd + 4, 2, FR); r(X - 2, Y - 2, 2, Hd + 2, FR); r(X + Wd, Y - 2, 2, Hd + 2, FR);
@@ -912,7 +923,7 @@ function drawCurtain(x0, w) {
   for (let i = 2; i < w; i += 6) r(x0 + i, 6, 1, 48, 'rgba(255,255,235,0.55)');
 }
 function drawSunlight() {
-  const a = 0.17 * (1 - state.time * 0.6);
+  const a = 0.09 * (1 - state.time * 0.6);
   ctx.fillStyle = state.time > 0.5 ? `rgba(255,190,120,${a})` : `rgba(255,242,190,${a})`;
   for (let y = FLOOR_Y; y < 102; y++) {
     const t = (y - FLOOR_Y) / 44, x0 = 86 - t * 12, x1 = 116 + t * 22;
@@ -979,7 +990,7 @@ function drawKeyboard() {
   r(161, 106, 23, 44, '#f2efe7');
   for (let y = 108; y < 150; y += 3) r(161, y, 23, 1, '#b9b4a8');
   const pattern = [1, 1, 0, 1, 1, 1, 0];
-  for (let k = 0, y = 107; y < 148; k++, y += 3) if (pattern[k % 7]) r(161, y + 1, 13, 2, '#141416');
+  for (let k = 0, y = 107; y < 148; k++, y += 3) if (pattern[k % 7]) r(171, y + 1, 13, 2, '#141416');
   r(187, 108, 11, 4, '#2c2c33'); r(188, 109, 6, 2, '#7ad19b');
   for (let i = 0; i < 4; i++) { px(188 + i * 3, 116, '#8c8c96'); px(188 + i * 3, 120, '#8c8c96'); }
   r(188, 125, 3, 3, '#55555e'); r(194, 125, 3, 3, '#55555e');
